@@ -1,0 +1,15 @@
+<html>
+Logged in as {{ user }}
+<br>
+
+{% filter indent(width=2) %}
+    <pre>{{ data }}</pre>
+{% endfilter %}
+
+<br>
+<a href="/secret">Secret</a>
+<br>
+<a href="/test">Test XSS on me</a>
+<br>
+<a href="/logout">Logout</a>
+</html>

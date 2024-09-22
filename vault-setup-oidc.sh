@@ -81,7 +81,7 @@ vault write identity/oidc/assignment/my-assignment \
 # ===== oidc client config =====
 # (app that will use the oidc provider)
 vault write identity/oidc/client/webapp \
-  redirect_uris="http://localhost:5000/auth,http://localhost:8080/session/callback" \
+  redirect_uris="http://localhost:5000/auth" \
   assignments="my-assignment"
 #  assignments="allow_all"
 CLIENT_ID=$(vault read -field=client_id identity/oidc/client/webapp)
@@ -92,7 +92,7 @@ CLIENT_ID=$(vault read -field=client_id identity/oidc/client/webapp)
 # user scope
 USER_SCOPE_TEMPLATE='{
     "username": {{identity.entity.name}},
-    "current_time": "{{time.now}}",
+    "current_time": {{time.now}},
     "contact": {
         "email": {{identity.entity.metadata.email}},
         "phone_number": {{identity.entity.metadata.phone_number}}

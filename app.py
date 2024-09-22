@@ -5,7 +5,7 @@ import random
 
 import requests
 from authlib.integrations.flask_client import OAuth
-from flask import Flask, url_for, session, make_response, redirect
+from flask import Flask, render_template, request, url_for, session, make_response, redirect
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -25,6 +25,8 @@ if VAULT_TOKEN is None:
 
 # read client_id and client_secret from vault
 client_config = requests.get(f"{VAULT_ADDR}/v1/identity/oidc/client/webapp", headers={"X-Vault-Token": VAULT_TOKEN}).json()
+# we will save entity_id of alice to allow her access to /secret endpoint
+privileged_user_entity_id = requests.get(f"{VAULT_ADDR}/v1/identity/entity/name/alice", headers={"X-Vault-Token": VAULT_TOKEN}).json()["data"]["id"]
 
 # url used for automatic configuration of OIDC client
 oidc_config_url = f"{VAULT_ADDR}/v1/identity/oidc/provider/default/.well-known/openid-configuration"
@@ -47,17 +49,19 @@ def homepage():
     user = session.get('user')
     if user is None:
         return "Not logged in<br><a href='/login'>Login</a>"
-    return f"Logged in as {user["username"]}<br><pre id=\"json\">{json.dumps(user, indent=4)}</pre><br><a href='/secret'>Secret</a><br><a href='/logout'>Logout</a>"
+    return render_template('home.html', user=user["username"], data=json.dumps(user, indent=4))
 
 
 @app.route('/login')
 def login():
+    assert oauth.vault is not None
     redirect_uri = url_for('auth', _external=True)
     return oauth.vault.authorize_redirect(redirect_uri)
 
 
 @app.route('/auth')
 def auth():
+    assert oauth.vault is not None
     token = oauth.vault.authorize_access_token()
     session['user'] = token['userinfo']
     return redirect('/')
@@ -74,4 +78,14 @@ def secret():
     user = session.get('user')
     if user is None:
         return make_response("Not logged in, can't read secret", 403)
-    return f"Logged in as {user["username"]}<br>{"very_secret_data_123" if user["username"] == "alice" else "user logged in but not authorized to view this data"}<br><a href='/'>Back</a>"
+    data = "user logged in but not authorized to view this data"
+    # "sub" claim contains entity_id (unique id) of the user
+    if "sub" in user and user["sub"] == privileged_user_entity_id:
+        data = "very_secret_data_123"
+    return render_template('secret.html', user=user["username"], data=data, current_entity_id=user["sub"], allowed_entity_id=privileged_user_entity_id)
+
+
+@app.route('/test')
+def test():
+    data = request.args.get('input', 'null')
+    return render_template('test.html', input=data)
