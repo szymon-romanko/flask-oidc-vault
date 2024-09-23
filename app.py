@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import random
+import secrets
 
 import requests
 from authlib.integrations.flask_client import OAuth
@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, url_for, session, make_respon
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-app.secret_key = str(random.randbytes(32))
+app.secret_key = secrets.token_hex()
 
 # vault address - use "vault" when running in docker (container name dns), otherwise localhost
 VAULT_ADDR = os.environ.get("VAULT_ADDR")
