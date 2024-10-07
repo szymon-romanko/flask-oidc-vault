@@ -49,7 +49,7 @@ def homepage():
     user = session.get('user')
     if user is None:
         return "Not logged in<br><a href='/login'>Login</a>"
-    return render_template('home.html', user=user["username"], data=json.dumps(user, indent=4))
+    return render_template('home.html', user=user["username"], data=json.dumps(session.get('token'), indent=4))
 
 
 @app.route('/login')
@@ -64,6 +64,7 @@ def auth():
     assert oauth.vault is not None
     token = oauth.vault.authorize_access_token()
     session['user'] = token['userinfo']
+    session['token'] = token
     return redirect('/')
 
 
